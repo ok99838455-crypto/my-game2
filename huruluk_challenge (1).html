@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>후루룩 챌린지</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#140f1c;
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  color:#fff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;overflow:hidden;touch-action:none;
+  background:linear-gradient(#21182e,#30223a 55%,#3a2a2e)}
+#world{position:absolute;left:50%;top:50%;width:400px;height:720px;transform-origin:center center}
+
+/* 창문 + 야경 */
+.window{position:absolute;left:55px;top:78px;width:290px;height:190px;border:10px solid #6d4f3a;border-radius:6px;
+  box-shadow:0 6px 0 #4a3426,inset 0 0 20px rgba(0,0,0,.6);overflow:hidden;background:#0b1030}
+.window canvas{width:100%;height:100%;display:block}
+.window::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:8px;margin-left:-4px;background:#6d4f3a}
+.window::after{content:"";position:absolute;top:50%;left:0;right:0;height:8px;margin-top:-4px;background:#6d4f3a}
+
+/* 스탠드 조명 */
+.glow{position:absolute;left:-400px;top:-400px;width:1200px;height:1520px;pointer-events:none;
+  background:radial-gradient(circle at 755px 820px,rgba(255,190,100,.55),rgba(255,160,70,.18) 260px,transparent 520px)}
+.lamp-shade{position:absolute;left:318px;top:392px;width:0;height:0;border-bottom:48px solid #ffb547;
+  border-left:18px solid transparent;border-right:18px solid transparent;width:76px;filter:drop-shadow(0 0 14px rgba(255,200,110,.9))}
+.lamp-shade::after{content:"";position:absolute;left:4px;top:46px;width:32px;height:12px;border-radius:50%;
+  background:#fff3c4;box-shadow:0 0 30px 12px rgba(255,220,140,.8)}
+.lamp-pole{position:absolute;left:353px;top:440px;width:7px;height:82px;background:#3d2c22}
+.lamp-base{position:absolute;left:330px;top:512px;width:52px;height:14px;border-radius:50%;background:#3d2c22}
+
+/* 책상 */
+.desk{position:absolute;left:-400px;top:520px;width:1200px;height:700px;
+  background:linear-gradient(#9a6842,#7a4f31 14px,#5e3b24 120px,#3f281a)}
+
+/* 캐릭터 */
+.body{position:absolute;left:70px;top:372px;width:260px;height:190px;border-radius:125px 125px 30px 30px;
+  background:linear-gradient(#5c7cfa,#4263eb)}
+.head{position:absolute;left:120px;top:236px;width:160px;height:160px;transform-origin:center 70%}
+.face{position:absolute;inset:0;border-radius:50%;background:#ffd9b0;box-shadow:inset -8px -10px 0 rgba(0,0,0,.06);transition:background .2s}
+.hair{position:absolute;left:8px;top:-8px;width:144px;height:66px;border-radius:72px 72px 26px 26px;background:#3b2a20}
+.eye{position:absolute;top:74px;width:13px;height:17px;border-radius:50%;background:#2b1d16;
+  font-size:26px;font-weight:900;line-height:17px;text-align:center;color:#2b1d16}
+.eye.l{left:46px}.eye.r{left:101px}
+.cheek{position:absolute;top:96px;width:36px;height:28px;border-radius:50%;background:rgba(255,120,140,.55)}
+.cheek.l{left:14px;transform-origin:right center}.cheek.r{left:110px;transform-origin:left center}
+.mouth{position:absolute;left:66px;top:116px;width:28px;height:14px;background:#7a2b2b;border-radius:0 0 14px 14px}
+.mouth.slurp{left:72px;top:114px;width:16px;height:16px;border-radius:50%}
+.head.stun .face{background:#ff9d8a}
+.head.stun .eye{background:none;width:20px;margin-left:-4px}
+.head.stun .eye.l::after{content:">"}.head.stun .eye.r::after{content:"<"}
+.head.stun .mouth{left:62px;width:36px;height:10px;top:120px;border-radius:6px}
+.chop{position:absolute;left:262px;top:388px;font-size:62px;transform:rotate(18deg);transition:transform .06s}
+.chop.up{transform:rotate(8deg) translateY(-14px)}
+
+/* 라면 그릇 */
+#bowlWrap{position:absolute;left:0;top:0;width:400px;height:720px;transform-origin:200px 520px}
+#bowlWrap.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:translateY(60px) scale(.85);opacity:.3}70%{transform:translateY(-6px) scale(1.04);opacity:1}100%{transform:none}}
+.rim{position:absolute;left:76px;top:455px;width:248px;height:32px;border-radius:50%;background:#f05a3c}
+.soup{position:absolute;left:84px;top:460px;width:232px;height:22px;border-radius:50%;
+  background:radial-gradient(circle at 30% 50%,#4caf50 0 3px,transparent 4px),radial-gradient(circle at 70% 40%,#4caf50 0 3px,transparent 4px),
+  radial-gradient(circle at 55% 65%,#4caf50 0 3px,transparent 4px),#e0802a}
+#pile{position:absolute;left:112px;width:176px;bottom:238px;height:55px;border-radius:88px 88px 20px 20px/50px 50px 10px 10px;
+  background:repeating-linear-gradient(105deg,#f8d877 0 5px,#e6b94a 5px 9px,#f3cc5f 9px 13px);box-shadow:inset 0 -6px 8px rgba(160,100,20,.35)}
+.bowl{position:absolute;left:80px;top:471px;width:240px;height:96px;border-radius:0 0 120px 120px/0 0 96px 96px;
+  background:linear-gradient(#ee4d33,#b9301d);box-shadow:inset -14px -8px 0 rgba(0,0,0,.12)}
+.bowl::before{content:"";position:absolute;left:0;right:0;top:20px;height:12px;
+  background:repeating-linear-gradient(90deg,#fff 0 12px,transparent 12px 20px);opacity:.85}
+.foot{position:absolute;left:150px;top:560px;width:100px;height:14px;border-radius:0 0 12px 12px;background:#8f2416}
+#strand{position:absolute;left:196px;top:366px;width:9px;height:60px;opacity:0;border-radius:5px;
+  background:repeating-linear-gradient(170deg,#f8d877 0 6px,#e6b94a 6px 10px)}
+#bowlWrap.shake{animation:shake .12s linear infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* 김 */
+.wisp{position:absolute;top:400px;width:26px;height:40px;border-radius:50%;background:rgba(255,255,255,.35);filter:blur(4px);
+  animation:rise 2.2s ease-in infinite;opacity:0}
+.wisp.a{left:150px}.wisp.b{left:190px;animation-delay:.7s}.wisp.c{left:230px;animation-delay:1.4s}
+@keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}30%{opacity:.8}100%{transform:translateY(-110px) scale(1.4);opacity:0}}
+#world.warn .wisp{animation-duration:.8s;background:rgba(255,255,255,.6)}
+#bigSteam{position:absolute;left:60px;top:220px;width:280px;height:260px;pointer-events:none;opacity:0;transform:scale(.4);
+  transform-origin:center bottom;transition:opacity .15s,transform .2s}
+#bigSteam i{position:absolute;border-radius:50%;background:rgba(255,255,255,.9);filter:blur(10px)}
+#world.danger #bigSteam{opacity:.92;transform:scale(1)}
+#tint{position:absolute;left:-400px;top:-400px;width:1200px;height:1520px;background:rgba(255,40,20,.18);opacity:0;pointer-events:none;transition:opacity .15s}
+#world.danger #tint{opacity:1}
+
+/* HUD */
+.hud{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between}
+.pill{background:rgba(0,0,0,.45);border:2px solid rgba(255,200,120,.5);border-radius:16px;padding:6px 14px;text-align:center;min-width:130px}
+.pill small{display:block;font-size:12px;color:#ffd8a0}
+.pill b{font-size:26px}
+.gauge{position:absolute;left:30px;top:612px;width:340px}
+.gauge .label{font-size:15px;font-weight:700;margin-bottom:6px;color:#ffe2b8}
+.bar{height:28px;border-radius:14px;background:rgba(0,0,0,.5);border:3px solid #ffe2b8;overflow:hidden}
+#tempFill{height:100%;width:100%;border-radius:10px}
+.gauge.low .bar{animation:blink .3s step-end infinite}
+@keyframes blink{50%{border-color:#ff4d4d}}
+
+/* 알림 글자 */
+#alert{position:absolute;left:0;right:0;top:112px;text-align:center;font-size:26px;font-weight:900;opacity:0;transition:opacity .1s;
+  text-shadow:0 3px 0 #000,0 0 12px #000}
+#alert.show{opacity:1}
+#ouch{position:absolute;left:0;right:0;top:168px;text-align:center;font-size:44px;font-weight:900;color:#ff5a3c;opacity:0;
+  text-shadow:0 4px 0 #fff,0 0 14px #fff;pointer-events:none}
+#ouch.show{animation:ouch 1s ease-out}
+@keyframes ouch{0%{opacity:1;transform:scale(1.6)}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+.popTxt{position:absolute;font-weight:900;color:#fff;pointer-events:none;white-space:nowrap;
+  -webkit-text-stroke:1.5px #e8590c;animation:float .6s ease-out forwards}
+@keyframes float{0%{opacity:1;transform:translateY(0) scale(.8)}100%{opacity:0;transform:translateY(-60px) scale(1.15)}}
+
+/* 시작/게임오버 화면 */
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,8,20,.78);z-index:10}
+.screen.hidden{display:none}
+.panel{width:min(88vw,360px);background:#2a2035;border:3px solid #ffb35c;border-radius:22px;padding:26px 22px;text-align:center;
+  box-shadow:0 0 40px rgba(255,170,80,.35)}
+.panel h1{font-size:34px;font-weight:900;color:#ffcf7a;text-shadow:0 3px 0 #b5501a;margin-bottom:8px}
+.panel p{font-size:15px;line-height:1.6;color:#f3e6d8}
+.panel ul{list-style:none;text-align:left;margin:16px 0 20px;font-size:15px;line-height:1.9;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 14px}
+.big{font-size:56px;font-weight:900;color:#ffcf7a;margin:14px 0 4px}
+button{font:inherit;font-size:22px;font-weight:900;color:#3a1d05;background:linear-gradient(#ffd27a,#ff9f3a);border:none;border-radius:16px;
+  padding:14px 38px;margin-top:14px;box-shadow:0 5px 0 #b5501a;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #b5501a}
+button:disabled{filter:grayscale(.8);opacity:.6}
+.hint{font-size:13px;color:#bba;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="world">
+    <div class="glow"></div>
+    <div class="window"><canvas id="city"></canvas></div>
+    <div class="lamp-pole"></div><div class="lamp-shade"></div>
+    <div class="body"></div>
+    <div class="head" id="head">
+      <div class="face"></div><div class="hair"></div>
+      <div class="eye l"></div><div class="eye r"></div>
+      <div class="cheek l" id="cheekL"></div><div class="cheek r" id="cheekR"></div>
+      <div class="mouth" id="mouth"></div>
+    </div>
+    <div id="strand"></div>
+    <div class="desk"></div>
+    <div class="lamp-base"></div>
+    <div id="bowlWrap">
+      <div class="rim"></div><div class="soup"></div>
+      <div id="pile"></div>
+      <div class="bowl"></div><div class="foot"></div>
+      <div class="wisp a"></div><div class="wisp b"></div><div class="wisp c"></div>
+    </div>
+    <div class="chop" id="chop">🥢</div>
+    <div id="bigSteam">
+      <i style="left:20px;top:120px;width:120px;height:120px"></i>
+      <i style="left:120px;top:90px;width:140px;height:140px"></i>
+      <i style="left:70px;top:20px;width:130px;height:130px"></i>
+      <i style="left:0;top:40px;width:90px;height:90px"></i>
+      <i style="left:190px;top:10px;width:90px;height:90px"></i>
+    </div>
+    <div id="tint"></div>
+    <div class="hud">
+      <div class="pill"><small>남은 시간</small><b>⏱️ <span id="time">60</span>초</b></div>
+      <div class="pill"><small>비운 그릇</small><b>🍜 <span id="score">0</span>그릇</b></div>
+    </div>
+    <div id="alert"></div>
+    <div id="ouch">앗 뜨거! 🔥</div>
+    <div class="gauge" id="gauge">
+      <div class="label">🌡️ 라면 온도</div>
+      <div class="bar"><div id="tempFill"></div></div>
+    </div>
+  </div>
+
+  <div class="screen" id="startScreen">
+    <div class="panel">
+      <h1>후루룩 챌린지 🍜</h1>
+      <p>면이 식기 전에 화면을 최대한 빨리 연타해서<br>라면을 다 먹어 치우세요!</p>
+      <ul>
+        <li>👆 화면 터치 · 🖱️ 클릭 · ⌨️ 스페이스바로 연타</li>
+        <li>⏱️ 60초 동안 최대한 많은 그릇 비우기</li>
+        <li>🌡️ 온도가 0이 되면 게임 끝</li>
+        <li>♨️ 김이 확 올라올 땐 누르지 마세요!</li>
+      </ul>
+      <button id="startBtn">시작하기</button>
+      <div class="hint">스페이스바나 엔터로도 시작할 수 있어요</div>
+    </div>
+  </div>
+
+  <div class="screen hidden" id="overScreen">
+    <div class="panel">
+      <h1 id="overTitle">게임 오버</h1>
+      <p id="overReason"></p>
+      <div class="big"><span id="finalScore">0</span>그릇</div>
+      <p>비운 그릇 수</p>
+      <button id="retryBtn">다시 하기</button>
+      <div class="hint">스페이스바나 엔터로도 다시 할 수 있어요</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 기본 수치 (여기 숫자만 바꿔서 난이도 조절) =====
+const GAME_TIME = 60;      // 한 판 시간(초)
+const TAPS_PER_BOWL = 25;  // 한 그릇을 비우는 데 필요한 탭 수
+const COOL_TIME = 9;       // 온도 게이지가 가득 찬 상태에서 0이 되기까지 걸리는 시간(초)
+const STEAM_START = 20;    // 시작 후 몇 초부터 '누르면 안 되는 순간'이 나올지
+const WARN_TIME = 0.6;     // 김이 올라오기 전 예고 시간(초)
+const DANGER_TIME = 1.3;   // 누르면 안 되는 시간(초)
+const STUN_TIME = 1.0;     // 잘못 눌렀을 때 못 먹는 시간(초)
+
+const $ = id => document.getElementById(id);
+const world = $('world'), head = $('head'), mouth = $('mouth'), cheekL = $('cheekL'), cheekR = $('cheekR');
+const pile = $('pile'), strand = $('strand'), bowlWrap = $('bowlWrap'), chop = $('chop');
+const alertEl = $('alert'), ouch = $('ouch'), gauge = $('gauge'), tempFill = $('tempFill');
+
+let state = 'start';
+let timeLeft, bowls, tapsLeft, temp, elapsed, nextSteam, steamPhase, steamT, stunT, overAt = 0;
+let tapTimes = [], bump = 0, lastT = performance.now();
+const rand = (a, b) => a + Math.random() * (b - a);
+
+// ===== 화면 크기 맞추기 =====
+function fit() {
+  const s = Math.min(innerWidth / 400, innerHeight / 720);
+  world.style.transform = `translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+
+// ===== 창밖 도시 야경 그리기 =====
+(function drawCity() {
+  const c = $('city'), w = 270, h = 170, d = 2;
+  c.width = w * d; c.height = h * d;
+  const g = c.getContext('2d'); g.scale(d, d);
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#0a0f2e'); sky.addColorStop(1, '#3b2f6b');
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#fff';
+  for (let i = 0; i < 40; i++) { g.globalAlpha = rand(.3, 1); g.fillRect(rand(0, w), rand(0, h * .5), 1.5, 1.5); }
+  g.globalAlpha = 1;
+  g.fillStyle = '#fff4cf'; g.beginPath(); g.arc(215, 35, 15, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#0a0f2e'; g.beginPath(); g.arc(222, 30, 13, 0, Math.PI * 2); g.fill();
+  for (let layer = 0; layer < 2; layer++) {
+    let x = -5;
+    while (x < w) {
+      const bw = rand(18, 40), bh = layer ? rand(40, 100) : rand(70, 140);
+      g.fillStyle = layer ? '#141833' : '#232a52';
+      g.fillRect(x, h - bh, bw, bh);
+      for (let wy = h - bh + 6; wy < h - 4; wy += 9)
+        for (let wx = x + 4; wx < x + bw - 4; wx += 7)
+          if (Math.random() < (layer ? .35 : .2)) { g.fillStyle = Math.random() < .8 ? '#ffd36b' : '#9fd8ff'; g.fillRect(wx, wy, 3, 4); }
+      x += bw + rand(1, 5);
+    }
+  }
+})();
+
+// ===== 소리 (Web Audio로 '후루룩' 만들기) =====
+let ac = null, noise = null;
+function initAudio() {
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  try {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const d = noise.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { ac = null; }
+}
+function slurp(rate) {
+  if (!ac) return;
+  const t = ac.currentTime;
+  const dur = Math.max(0.06, 0.2 - rate * 0.012);   // 빨리 누를수록 짧고
+  const src = ac.createBufferSource(); src.buffer = noise;
+  const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 5;
+  f.frequency.setValueAtTime(450 + rate * 40, t);
+  f.frequency.exponentialRampToValueAtTime(2000 + rate * 180, t + dur); // 빨리 누를수록 높게
+  const v = ac.createGain();
+  v.gain.setValueAtTime(0.0001, t);
+  v.gain.exponentialRampToValueAtTime(0.6, t + 0.015);
+  v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(v).connect(ac.destination);
+  src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+}
+
+// ===== 게임 흐름 =====
+function startGame() {
+  initAudio();
+  state = 'play';
+  timeLeft = GAME_TIME; bowls = 0; elapsed = 0;
+  tapsLeft = TAPS_PER_BOWL; temp = 100;
+  nextSteam = STEAM_START + rand(0, 2); steamPhase = 'none'; steamT = 0; stunT = 0;
+  tapTimes = []; bump = 0;
+  world.classList.remove('warn', 'danger'); bowlWrap.classList.remove('shake');
+  $('startScreen').classList.add('hidden'); $('overScreen').classList.add('hidden');
+}
+
+function endGame(reason) {
+  state = 'over'; overAt = performance.now();
+  world.classList.remove('warn', 'danger'); bowlWrap.classList.remove('shake'); alertEl.classList.remove('show');
+  if (reason === 'cold') { $('overTitle').textContent = '라면이 불었어요… 😵'; $('overReason').textContent = '온도 게이지가 다 떨어졌어요.'; }
+  else { $('overTitle').textContent = '시간 끝! 🎉'; $('overReason').textContent = '60초를 끝까지 버텼어요!'; }
+  $('finalScore').textContent = bowls;
+  const btn = $('retryBtn'); btn.disabled = true;           // 연타하다 실수로 바로 재시작되는 것 방지
+  setTimeout(() => { btn.disabled = false; }, 800);
+  $('overScreen').classList.remove('hidden');
+}
+
+function steamGap() {   // 시간이 갈수록 '누르면 안 되는 순간'이 더 자주 나옴
+  const p = Math.min(1, (elapsed - STEAM_START) / (GAME_TIME - STEAM_START));
+  return rand(3.5 - 1.5 * p, 6 - 2.5 * p);
+}
+
+function update(dt) {
+  elapsed += dt; timeLeft -= dt;
+  temp -= (100 / COOL_TIME) * dt;
+  if (stunT > 0) stunT -= dt;
+
+  if (steamPhase === 'none') {
+    if (elapsed >= nextSteam) { steamPhase = 'warn'; steamT = WARN_TIME; }
+  } else {
+    steamT -= dt;
+    if (steamT <= 0) {
+      if (steamPhase === 'warn') { steamPhase = 'danger'; steamT = DANGER_TIME; }
+      else { steamPhase = 'none'; nextSteam = elapsed + steamGap(); }
+    }
+  }
+  if (temp <= 0) { temp = 0; endGame('cold'); return; }
+  if (timeLeft <= 0) { timeLeft = 0; endGame('time'); }
+}
+
+function tap() {
+  if (state !== 'play' || stunT > 0) return;
+  if (steamPhase === 'danger') {           // 누르면 안 되는 순간에 누름
+    stunT = STUN_TIME;
+    ouch.classList.remove('show'); void ouch.offsetWidth; ouch.classList.add('show');
+    return;
+  }
+  const now = performance.now();
+  tapTimes.push(now);
+  while (tapTimes.length && now - tapTimes[0] > 1000) tapTimes.shift();
+  const rate = tapTimes.length;
+
+  tapsLeft--; bump = 0.12;
+  slurp(rate);
+  mouth.classList.add('slurp'); chop.classList.add('up'); strand.style.opacity = 1;
+  clearTimeout(tap.t);
+  tap.t = setTimeout(() => { mouth.classList.remove('slurp'); chop.classList.remove('up'); strand.style.opacity = 0; }, 90);
+  popText(rate);
+
+  if (tapsLeft <= 0) {                     // 한 그릇 비움 → 새 그릇
+    bowls++; tapsLeft = TAPS_PER_BOWL; temp = 100;
+    bowlWrap.classList.remove('pop'); void bowlWrap.offsetWidth; bowlWrap.classList.add('pop');
+  }
+}
+
+function popText(rate) {
+  const el = document.createElement('div');
+  el.className = 'popTxt';
+  el.textContent = rate >= 8 ? '후루루룩!!' : '후루룩!';
+  el.style.fontSize = (18 + Math.min(rate, 12) * 2) + 'px';
+  el.style.left = (Math.random() < .5 ? rand(4, 60) : rand(272, 300)) + 'px';   // 얼굴을 가리지 않게 양옆에
+  el.style.top = rand(290, 360) + 'px';
+  world.appendChild(el);
+  setTimeout(() => el.remove(), 600);
+}
+
+// ===== 화면 그리기 =====
+function render() {
+  if (state === 'start') return;
+  $('time').textContent = Math.ceil(timeLeft);
+  $('score').textContent = bowls;
+
+  const tp = Math.max(0, temp) / 100;
+  tempFill.style.width = (tp * 100) + '%';
+  tempFill.style.background = `hsl(${(1 - tp) * 210}, 85%, 55%)`;   // 빨강(뜨거움) → 파랑(식음)
+  gauge.classList.toggle('low', state === 'play' && tp < 0.3);
+
+  const ph = 55 * tapsLeft / TAPS_PER_BOWL;
+  pile.style.height = ph + 'px';
+  strand.style.height = Math.max(10, (482 - ph) - 366) + 'px';
+
+  // 볼 부풀리기: 최근 1초 동안 누른 횟수가 많을수록 커짐
+  const now = performance.now();
+  const rate = tapTimes.filter(t => now - t < 1000).length;
+  bump *= 0.85;
+  const s = 1 + Math.min(rate, 12) * 0.07 + bump;
+  cheekL.style.transform = cheekR.style.transform = `scale(${s})`;
+  head.style.transform = `scaleX(${1 + (s - 1) * 0.25})`;
+  head.classList.toggle('stun', stunT > 0 && state === 'play');
+
+  const play = state === 'play';
+  world.classList.toggle('warn', play && steamPhase === 'warn');
+  world.classList.toggle('danger', play && steamPhase === 'danger');
+  bowlWrap.classList.toggle('shake', play && steamPhase === 'warn');
+  if (play && steamPhase === 'warn') { alertEl.textContent = '⚠️ 김이 올라와요!'; alertEl.style.color = '#ffe066'; alertEl.classList.add('show'); }
+  else if (play && steamPhase === 'danger') { alertEl.textContent = '♨️ 지금 누르지 마세요!'; alertEl.style.color = '#ff6b4a'; alertEl.classList.add('show'); }
+  else alertEl.classList.remove('show');
+}
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (state === 'play') update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ===== 조작: 터치 / 마우스 / 키보드 =====
+$('game').addEventListener('pointerdown', e => {
+  if (state !== 'play') return;
+  e.preventDefault(); tap();
+});
+$('startBtn').addEventListener('click', startGame);
+$('retryBtn').addEventListener('click', () => { if (!$('retryBtn').disabled) startGame(); });
+addEventListener('keydown', e => {
+  if (e.code !== 'Space' && e.code !== 'Enter') return;
+  e.preventDefault();
+  if (e.repeat) return;   // 꾹 누르고 있는 건 연타로 치지 않음
+  if (state === 'play') tap();
+  else if (state === 'start') startGame();
+  else if (state === 'over' && performance.now() - overAt > 800) startGame();
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body>
+</html>
